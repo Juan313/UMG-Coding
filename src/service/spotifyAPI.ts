@@ -1,4 +1,3 @@
-//curl -X "POST" -H "Authorization: Basic NjQxOWJkZmU0MWYxNDQzMThmZjM3N2M5ODNkY2IwYzg6M2Q1MzczMjhiYWFkNDYwOWJmODA4ZmRkZDc1MThhMWM=" -d grant_type=client_credentials https://accounts.spotify.com/api/token
 import axios from "axios";
 const url = require("url");
 require("dotenv").config();

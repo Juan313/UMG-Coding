@@ -16,7 +16,7 @@ createConnection().then((connection) => {
   app.use(express.json());
   app.use(bodyParser.urlencoded({ extended: true }));
 
-  // register routes
+  // add track record to DB
   app.post("/track", async function (req: Request, res: Response) {
     let isrc = req.body.isrc;
     if (!isrc) {
@@ -24,29 +24,30 @@ createConnection().then((connection) => {
     }
     try {
       const token = await SpotifyAPI.getSpotifyToken();
+      // query track meta data based on isrc
       const track = await SpotifyAPI.getTrackByISRC(isrc, token);
 
       // check if track with user provided isrc already exist in DB, if so skip
-      const foundTrack = await trackRepository
-        .findOne({ where: { isrc } })
-        .catch((err) => console.log(err));
+      const foundTrack = await trackRepository.findOne({ where: { isrc } });
+
       if (foundTrack) return res.send("successful!");
 
-      // add new record to track and artist table
+      // add new record to track table
       const newTrack = trackRepository.create({
         isrc: track.isrc,
         image_url: track.image_url,
         title: track.title,
       });
-      await trackRepository.save(newTrack).catch((err) => res.send(err));
+      await trackRepository.save(newTrack);
 
+      // add new record to artist table
       track.artists.map(async (artist) => {
         let newArtist = artistRepository.create({
           spotifyId: artist.spotifyId,
           name: artist.name,
           track: newTrack,
         });
-        await artistRepository.save(newArtist).catch((err) => res.send(err));
+        await artistRepository.save(newArtist);
       });
       return res.send("successful!");
     } catch (err) {
@@ -54,7 +55,9 @@ createConnection().then((connection) => {
     }
   });
 
+  // read from DB
   app.get("/track", async function (req: Request, res: Response) {
+    // read by "ISRC"
     if (req.query.isrc) {
       const foundTrack = await trackRepository
         .findOne({ where: { isrc: req.query.isrc } })
@@ -65,6 +68,7 @@ createConnection().then((connection) => {
           `Can't find track with isrc ${req.query.isrc} in the DB`
         );
     } else if (req.query.artist) {
+      // read by artist
       const foundTracks = await artistRepository
         .createQueryBuilder("artist")
         .select("artist.name")
